@@ -10,12 +10,16 @@ from .brekel_enhance_prompt import NODE_CLASS_MAPPINGS as ENHANCE_PROMPT_CLASS_M
 # Import the mappings from the new resolution selector node
 from .brekel_resolution_selector import NODE_CLASS_MAPPINGS as RESOLUTION_CLASS_MAPPINGS, NODE_DISPLAY_NAME_MAPPINGS as RESOLUTION_NAME_MAPPINGS
 
+# Import the mappings from the new load image node
+from .brekel_load_image import NODE_CLASS_MAPPINGS as LOAD_IMAGE_CLASS_MAPPINGS, NODE_DISPLAY_NAME_MAPPINGS as LOAD_IMAGE_NAME_MAPPINGS
+
 # Merge the class mappings from all files into one dictionary
 NODE_CLASS_MAPPINGS = {
     **CHOOSER_CLASS_MAPPINGS,
     **AUTO_PROMPT_CLASS_MAPPINGS,
     **ENHANCE_PROMPT_CLASS_MAPPINGS,
     **RESOLUTION_CLASS_MAPPINGS,
+    **LOAD_IMAGE_CLASS_MAPPINGS,
 }
 
 # Merge the display name mappings from all files into one dictionary
@@ -24,6 +28,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     **AUTO_PROMPT_NAME_MAPPINGS,
     **ENHANCE_PROMPT_NAME_MAPPINGS,
     **RESOLUTION_NAME_MAPPINGS,
+    **LOAD_IMAGE_NAME_MAPPINGS,
 }
 
 # This tells Python what variables to export from this module
