@@ -1,19 +1,24 @@
 # Brekel's Custom Nodes for ComfyUI
 
-A collection of custom nodes for ComfyUI designed to enhance and streamline your prompt engineering workflow.  
-These nodes provide tools for generating, combining, enhancing, and selecting prompts dynamically. 
+A collection of custom nodes for ComfyUI designed to enhance and streamline your workflow.  
+These nodes provide tools for generating, combining, enhancing, and selecting prompts dynamically, plus
+utility nodes for resolutions, loading/saving images with extra metadata, and loading LoRAs from a folder.
 
 <img src="images/Screenshot_flux.jpg">
 
 
 ## Table of Contents
 
-- [📦 Installation](#installation)
-- [📖 Nodes Overview](#nodes-overview)
-  - [📃 Brekel Prompt Enhancer (LLM)](#3-brekel-prompt-enhancer-llm)
-  - [📃 Brekel Auto Prompt Generator](#2-brekel-auto-prompt-generator)
-  - [📃 Brekel Prompt Chooser](#1-brekel-prompt-chooser)
-- [📝 Author](#author)
+- [📦 Installation](#-installation)
+- 📖 Nodes Overview
+  - [📃 Brekel Prompt Enhancer (LLM)](#-brekel-prompt-enhancer-llm)
+  - [📃 Brekel Auto Prompt Generator](#-brekel-auto-prompt-generator)
+  - [📃 Brekel Prompt Chooser](#-brekel-prompt-chooser)
+  - [📐 Brekel Resolution Selector](#-brekel-resolution-selector)
+  - [🖼️ Brekel Load Image (with Filename & Caption)](#️-brekel-load-image-with-filename--caption)
+  - [💾 Brekel Save Image (PNG/JPG)](#-brekel-save-image-pngjpg)
+  - [🎛️ Brekel Lora Loader (Directory)](#️-brekel-lora-loader-directory)
+- [📝 Author](#-author)
 ## 
 
 
@@ -50,6 +55,8 @@ The manager will automatically handle the installation and download any required
    pip install -r requirements.txt
    ```
 4. Restart ComfyUI.
+
+The other nodes have no dependencies beyond what ComfyUI already ships with.
 ## 
 
 
@@ -101,7 +108,7 @@ This folder is included with the installation and contains default system prompt
 <br>
 
 
-### 📃Brekel Auto Prompt Generator
+### 📃 Brekel Auto Prompt Generator
 
 This node constructs a complete prompt by combining up to four randomly selected lines from different text files with a optional prefix/postfix.
 It's a powerful tool for creating complex, semi-randomized prompts while still allowing full control by customizing the text file contents.
@@ -156,6 +163,146 @@ It's perfect for workflows where you want to iterate through a predefined list p
 | `selection_mode` | Dropdown | `Random`: Selects a file randomly based on the seed. `Index`: Selects a specific file by its numerical index. |
 | `seed`           | INT      | The seed for the random number generator when in `Random` mode.                                               |
 | `file_index`     | INT      | The index of the file to choose (alphabetically sorted) when in `Index` mode.                                 |
+<br>
+
+
+### 📐 Brekel Resolution Selector
+
+A simple dropdown with common resolution presets, so width, height and the number of frames are set in
+one place and can be re-used throughout your workflow.
+
+#### How to Use
+
+1. Pick a preset from the `resolution` dropdown, presets are included for Flux/Qwen, SDXL, SD 1.5 and video (480p / 540p / 720p / 1080p).
+2. Use `orientation` to flip a preset between landscape and portrait, width and height are swapped when needed (square presets are unaffected).
+3. Connect `width` and `height` to your latent / empty image node, and `num_frames` to your video node.
+4. `num_frames` steps in increments of 4 with a default of 121, which keeps it WAN compliant (4n+1).
+
+#### Inputs
+
+| Parameter     | Type     | Description                                                                              |
+|:------------- |:-------- |:---------------------------------------------------------------------------------------- |
+| `resolution`  | Dropdown | The resolution preset to use, grouped by model family (Flux/Qwen, SDXL, SD 1.5, Video). |
+| `orientation` | Dropdown | `Landscape` or `Portrait`, swaps width and height when the preset does not match.        |
+| `num_frames`  | INT      | Number of frames to generate, primarily for video workflows.                              |
+
+#### Outputs
+
+| Output       | Type | Description                                          |
+|:------------ |:---- |:---------------------------------------------------- |
+| `width`      | INT  | The width of the selected preset after orientation.  |
+| `height`     | INT  | The height of the selected preset after orientation. |
+| `num_frames` | INT  | The number of frames, passed through unchanged.      |
+<br>
+
+
+### 🖼️ Brekel Load Image (with Filename & Caption)
+
+The same as the standard Load Image node, but with two extra outputs: the filename and the caption
+embedded in the image.
+
+#### How to Use
+
+- Connect `filename` to the `filename_prefix` of a save node to keep the source name of your images
+  through an img2img or upscale workflow, or use it anywhere else a string is accepted.
+- Connect `caption` to a text encoder or prompt input to re-use the caption that was stored in the image,
+  it stays empty when the image has none.
+- The caption is read from the PNG text chunks (`parameters`, `Description`, `caption`) and from the
+  JPG/WEBP EXIF fields (`UserComment`, `ImageDescription`), which is what the
+  [Brekel Save Image](#-brekel-save-image-pngjpg) node and most other tools write.
+  The workflow/prompt metadata of a regular ComfyUI image is deliberately ignored, that is not a caption.
+
+#### Inputs
+
+| Parameter | Type     | Description                                                          |
+|:--------- |:-------- |:-------------------------------------------------------------------- |
+| `image`   | Dropdown | The image to load from the ComfyUI input folder, with upload button. |
+
+#### Outputs
+
+| Output     | Type   | Description                                                  |
+|:---------- |:------ |:------------------------------------------------------------ |
+| `image`    | IMAGE  | The loaded image.                                            |
+| `mask`     | MASK   | The alpha channel as a mask, like the standard node.         |
+| `filename` | STRING | The name of the file without its extension.                  |
+| `caption`  | STRING | The caption embedded in the image, empty when there is none. |
+<br>
+
+
+### 💾 Brekel Save Image (PNG/JPG)
+
+Like the standard Save Image node, but with control over the file format, the numbering and the
+embedded metadata.
+
+#### Key Features
+
+- Save as **PNG or JPG**, with a quality setting for JPG.
+- A **save toggle** that turns the node into a preview node, the images go to the temp folder and the
+  output folder and its numbering are left untouched.
+- **`start_number`** sets the first number used, so a sequence can start at any offset.
+- **`fill_gaps`** scans the output folder and re-uses missing numbers, so deleting `image_00003_` while
+  `image_00004_` exists makes the next save land on `_00003_` again, keeping the range continuous.
+- Numbering is **shared between PNG and JPG** (and existing WEBP files), so the two formats never claim
+  the same number.
+- By default the **workflow/prompt is embedded** (drag & drop the PNG onto the canvas to restore it),
+  connecting the optional `caption` input embeds that text instead. In a JPG the metadata goes into
+  EXIF, and is dropped rather than failing the save when a large workflow does not fit the 64KB limit.
+- Outputs the images and the `filename` that was written, so it can be chained into other nodes.
+
+#### Inputs
+
+| Parameter         | Type     | Description                                                                                                                |
+|:----------------- |:-------- |:-------------------------------------------------------------------------------------------------------------------------- |
+| `images`          | IMAGE    | The images to save.                                                                                                        |
+| `save`            | BOOLEAN  | `save` writes to the output folder, `preview only` acts like a Preview Image node and leaves the output folder untouched.  |
+| `filename_prefix` | STRING   | The prefix for the file to save, supports the usual formatting such as `%date:yyyy-MM-dd%` or `%Empty Latent Image.width%`. |
+| `file_format`     | Dropdown | `png` is lossless and can be dragged onto the canvas to restore the workflow, `jpg` is smaller and stores metadata in EXIF. |
+| `quality`         | INT      | JPG quality (1-100), ignored when saving PNG.                                                                              |
+| `start_number`    | INT      | The first number of the sequence, numbers below this are never used.                                                       |
+| `fill_gaps`       | BOOLEAN  | Re-use missing numbers in the sequence on disk instead of always appending after the highest one.                          |
+| `caption`         | STRING   | Optional, when connected this text is embedded into the image instead of the workflow/prompt.                              |
+
+#### Outputs
+
+| Output     | Type   | Description                                               |
+|:---------- |:------ |:--------------------------------------------------------- |
+| `images`   | IMAGE  | The input images, passed through.                         |
+| `filename` | STRING | The name of the last file written, without its extension. |
+<br>
+
+
+### 🎛️ Brekel Lora Loader (Directory)
+
+Loads a LoRA from any folder on disk by **index** instead of picking it from the standard dropdown.
+Because the index is a number widget it gets the `fixed / increment / decrement / randomize` control,
+so a batch of queued runs can step through or randomly pick the LoRAs in a folder.
+
+#### How to Use
+
+1. Set `folder_path` to the folder holding your LoRAs (leave it empty to use the default ComfyUI `loras` folder).
+2. Files (`.safetensors`, `.ckpt`, `.pt`) are sorted alphabetically, `lora_index` picks one and wraps around when it is larger than the number of files.
+3. Set the control below `lora_index` to `increment` or `randomize` to walk through the folder over multiple runs.
+4. Connect `LORA_NAME` to a save node's `filename_prefix` or a text input to record which LoRA was used.
+5. Setting both strengths to `0` skips loading entirely and passes the model and clip through unchanged.
+
+#### Inputs
+
+| Parameter        | Type   | Description                                                                                           |
+|:---------------- |:------ |:------------------------------------------------------------------------------------------------------ |
+| `model`          | MODEL  | The model to apply the LoRA to.                                                                       |
+| `clip`           | CLIP   | The CLIP to apply the LoRA to.                                                                        |
+| `folder_path`    | STRING | Folder to load the LoRAs from, empty falls back to the default ComfyUI `loras` folder.                |
+| `lora_index`     | INT    | Index of the LoRA in the alphabetically sorted folder, wraps around. Has the increment/randomize control. |
+| `strength_model` | FLOAT  | How strongly to apply the LoRA to the model.                                                          |
+| `strength_clip`  | FLOAT  | How strongly to apply the LoRA to the CLIP.                                                           |
+
+#### Outputs
+
+| Output      | Type   | Description                                                                        |
+|:----------- |:------ |:----------------------------------------------------------------------------------- |
+| `MODEL`     | MODEL  | The model with the LoRA applied.                                                   |
+| `CLIP`      | CLIP   | The CLIP with the LoRA applied.                                                    |
+| `LORA_NAME` | STRING | The name of the loaded LoRA without its extension, `None` when nothing was loaded. |
 <br>
 
 
