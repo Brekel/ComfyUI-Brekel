@@ -4,8 +4,11 @@
 #
 # Author: Brekel - https://brekel.com
 #
-# This node is the same as the standard Load Image node except it adds the image name (without extension) as an output
-# so it can for example be passed to the filename_prefix of an output node or used elsewhere in your workflow
+# This node is the same as the standard Load Image node except it adds two extra outputs:
+# - filename: the image name without extension, so it can for example be passed to the filename_prefix
+#   of an output node or used elsewhere in your workflow
+# - caption: the text embedded in the image (as written by the Brekel Save Image node or by other tools),
+#   empty when the image has none
 
 import os
 import torch
@@ -18,8 +21,8 @@ import node_helpers
 
 class BrekelLoadImage:
     
-    # Returns IMAGE, MASK, and STRING (filename)
-    RETURN_TYPES = ("IMAGE", "MASK", "STRING")
+    RETURN_TYPES = ("IMAGE", "MASK", "STRING", "STRING")
+    RETURN_NAMES = ("image", "mask", "filename", "caption")
     
     FUNCTION = "load_image"
     CATEGORY = "image"
@@ -84,8 +87,7 @@ class BrekelLoadImage:
             output_image = output_images[0]
             output_mask = output_masks[0]
 
-        # Return the base_name (without extension) as the third output
-        return (output_image, output_mask, base_name)
+        return (output_image, output_mask, base_name, extract_caption(img))
 
     @classmethod
     def IS_CHANGED(s, image):
@@ -103,11 +105,66 @@ class BrekelLoadImage:
         return True
 
 
+# PNG text chunks and EXIF tags that can hold a caption
+CAPTION_TEXT_KEYS = ("parameters", "Description", "caption")
+EXIF_IMAGE_DESCRIPTION = 0x010E
+EXIF_IFD = 0x8769
+EXIF_USER_COMMENT = 0x9286
+
+
+def extract_caption(img):
+    """Read the caption embedded in an image, returns an empty string when there is none.
+
+    Reads the PNG text chunks and the JPG/WEBP EXIF fields written by the Brekel Save Image node,
+    which are the same ones used by most other tools. The workflow/prompt metadata of a regular
+    ComfyUI image is deliberately ignored, that is not a caption.
+    """
+    text = getattr(img, "text", None) or {}
+    for key in CAPTION_TEXT_KEYS:
+        value = text.get(key)
+        if isinstance(value, str) and value.strip():
+            return value
+
+    try:
+        exif = img.getexif()
+    except Exception:
+        return ""
+
+    # UserComment holds the full unicode text, ImageDescription is limited to ASCII
+    comment = decode_user_comment(exif.get_ifd(EXIF_IFD).get(EXIF_USER_COMMENT))
+    if comment:
+        return comment
+
+    description = exif.get(EXIF_IMAGE_DESCRIPTION)
+    if isinstance(description, str) and description.strip() and not description.startswith(("workflow:", "prompt:")):
+        return description
+
+    return ""
+
+
+def decode_user_comment(value):
+    """Decode the EXIF UserComment field, which is prefixed by an 8 byte character code."""
+    if isinstance(value, str):
+        return value.strip()
+    if not isinstance(value, bytes):
+        return ""
+
+    prefix, payload = value[:8], value[8:]
+    try:
+        if prefix == b"UNICODE\x00":
+            return payload.decode("utf-16-le").rstrip("\x00").strip()
+        if prefix == b"ASCII\x00\x00\x00":
+            return payload.decode("ascii", "ignore").rstrip("\x00").strip()
+        return value.decode("utf-8", "ignore").rstrip("\x00").strip()
+    except Exception:
+        return ""
+
+
 # ComfyUI mappings (These need to be at the end of the file)
 NODE_CLASS_MAPPINGS = {
     "BrekelLoadImage": BrekelLoadImage
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "BrekelLoadImage": "Brekel Load Image (with Filename)"
+    "BrekelLoadImage": "Brekel Load Image (with Filename & Caption)"
 }
