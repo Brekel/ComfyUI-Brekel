@@ -18,6 +18,7 @@ utility nodes for resolutions, loading/saving images with extra metadata, and lo
   - [🖼️ Brekel Load Image (with Filename & Caption)](#️-brekel-load-image-with-filename--caption)
   - [💾 Brekel Save Image (PNG/JPG)](#-brekel-save-image-pngjpg)
   - [🎛️ Brekel Lora Loader (Directory)](#️-brekel-lora-loader-directory)
+- [🔒 Viewport Lock (UI extension)](#-viewport-lock-ui-extension)
 - [📝 Author](#-author)
 ## 
 
@@ -303,6 +304,28 @@ so a batch of queued runs can step through or randomly pick the LoRAs in a folde
 | `MODEL`     | MODEL  | The model with the LoRA applied.                                                   |
 | `CLIP`      | CLIP   | The CLIP with the LoRA applied.                                                    |
 | `LORA_NAME` | STRING | The name of the loaded LoRA without its extension, `None` when nothing was loaded. |
+<br>
+
+
+## 🔒 Viewport Lock (UI extension)
+
+Not a node, this is a small frontend extension that freezes the graph canvas so an accidental
+drag or scroll no longer moves your carefully arranged workflow. Nodes stay fully usable, only
+panning and zooming are blocked.
+
+#### How to Use
+
+1. Click the **lock button** in the button cluster at the bottom-right of the canvas (next to the
+   fit-view / minimap / link-visibility toggles). A closed padlock means the viewport is locked.
+2. Or press **`Ctrl` + `Alt` + `L`** to toggle it from anywhere.
+3. Or use the command palette entry **Toggle viewport lock**.
+4. The state also lives in **Settings → Brekel → Viewport → Lock viewport**, so it persists between sessions.
+
+#### Notes
+
+- While locked, `allow_dragcanvas` is disabled and mouse-wheel zoom is swallowed before LiteGraph sees it.
+- Nodes can still be selected, moved and edited. To freeze those too, uncomment the `allow_dragnodes`
+  line in [`js/viewport_lock.js`](js/viewport_lock.js).
 <br>
 
 
