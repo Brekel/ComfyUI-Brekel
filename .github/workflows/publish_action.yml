@@ -16,6 +16,14 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ github.repository_owner == 'Brekel' }}
     steps:
+      - name: Verify registry token is present
+        env:
+          TOKEN: ${{ secrets.REGISTRY_ACCESS_TOKEN }}
+        run: |
+          if [ -z "$TOKEN" ]; then
+            echo "::error::REGISTRY_ACCESS_TOKEN is empty or missing. Create an API key at https://registry.comfy.org and add it under Settings > Secrets and variables > Actions > Repository secrets."
+            exit 1
+          fi
       - name: Check out code
         uses: actions/checkout@v4
       - name: Publish Custom Node
