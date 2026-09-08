@@ -14,6 +14,7 @@ utility nodes for resolutions, loading/saving images with extra metadata, and lo
   - [📃 Brekel Prompt Enhancer (LLM)](#-brekel-prompt-enhancer-llm)
   - [📃 Brekel Auto Prompt Generator](#-brekel-auto-prompt-generator)
   - [📃 Brekel Prompt Chooser](#-brekel-prompt-chooser)
+  - [📃 Brekel Prompt Line Chooser](#-brekel-prompt-line-chooser)
   - [📐 Brekel Resolution Selector](#-brekel-resolution-selector)
   - [🖼️ Brekel Load Image (with Filename & Caption)](#️-brekel-load-image-with-filename--caption)
   - [💾 Brekel Save Image (PNG/JPG)](#-brekel-save-image-pngjpg)
@@ -164,6 +165,41 @@ It's perfect for workflows where you want to iterate through a predefined list p
 | `selection_mode` | Dropdown | `Random`: Selects a file randomly based on the seed. `Index`: Selects a specific file by its numerical index. |
 | `seed`           | INT      | The seed for the random number generator when in `Random` mode.                                               |
 | `file_index`     | INT      | The index of the file to choose (alphabetically sorted) when in `Index` mode.                                 |
+<br>
+
+
+### 📃 Brekel Prompt Line Chooser
+
+Reads a single `.txt` file that holds **one prompt per line** and outputs one of those lines.  
+Because the line number is a number widget it gets the `fixed / increment / decrement / randomize`
+control, so a batch of queued runs can walk through the file or pick lines at random.
+
+#### How to Use
+
+1. Set `file_path` to your text file (it defaults to the `ComfyUI/custom_nodes/ComfyUI-Brekel/prompt_line_chooser/prompts.txt` example that ships with the node).
+2. Put one prompt on each line. Blank lines and lines starting with `#` are skipped by default, so you can keep notes in the file.
+3. `line_index` picks the line and wraps around when it is larger than the number of lines.
+4. Set the control below `line_index` to `increment` to step through the file, or to `randomize` to pick a random line each run.
+5. Connect the `prompt` output to a CLIP Text Encode node (or any text input).
+
+After running, the node shows a readout of the chosen line at its bottom (`Line 3/5: a robot tending a greenhouse...`), so you can see which prompt was used.
+
+Editing the file is picked up automatically, the node re-runs when the file's modification time changes.
+
+#### Inputs
+
+| Parameter            | Type    | Description                                                                                        |
+|:-------------------- |:------- |:---------------------------------------------------------------------------------------------------- |
+| `file_path`          | STRING  | Full path to the `.txt` file containing one prompt per line, empty falls back to the bundled example. |
+| `line_index`         | INT     | Which line to output, wraps around. Has the increment/randomize control.                            |
+| `skip_blank_lines`   | BOOLEAN | Ignore empty lines so they do not take up an index.                                                 |
+| `skip_comment_lines` | BOOLEAN | Ignore lines starting with `#` so the file can hold comments.                                       |
+
+#### Outputs
+
+| Output   | Type   | Description                                        |
+|:-------- |:------ |:---------------------------------------------------- |
+| `prompt` | STRING | The text of the chosen line.                       |
 <br>
 
 

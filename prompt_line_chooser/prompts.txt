@@ -1,0 +1,6 @@
+# One prompt per line, lines starting with '#' and blank lines are skipped.
+a cat wearing a wizard hat, sitting on a stack of spellbooks, warm candlelight
+a dog riding a skateboard down a sunlit street, motion blur, low angle
+a robot tending a greenhouse full of glowing plants, soft volumetric light
+a lighthouse on a rocky cliff during a storm, dramatic clouds, long exposure
+a cozy reading nook by a rainy window, steaming cup of tea, shallow depth of field

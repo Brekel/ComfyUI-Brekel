@@ -1,6 +1,9 @@
 # Import the mappings from the new prompt chooser node
 from .brekel_prompt_chooser import NODE_CLASS_MAPPINGS as CHOOSER_CLASS_MAPPINGS, NODE_DISPLAY_NAME_MAPPINGS as CHOOSER_NAME_MAPPINGS
 
+# Import the mappings from the line-based prompt chooser node
+from .brekel_prompt_line_chooser import NODE_CLASS_MAPPINGS as LINE_CHOOSER_CLASS_MAPPINGS, NODE_DISPLAY_NAME_MAPPINGS as LINE_CHOOSER_NAME_MAPPINGS
+
 # Import the mappings from the first node file using aliases to avoid name conflicts
 from .brekel_auto_prompt_generator import NODE_CLASS_MAPPINGS as AUTO_PROMPT_CLASS_MAPPINGS, NODE_DISPLAY_NAME_MAPPINGS as AUTO_PROMPT_NAME_MAPPINGS
 
@@ -22,6 +25,7 @@ from .brekel_lora_loader import NODE_CLASS_MAPPINGS as LORA_LOADER_CLASS_MAPPING
 # Merge the class mappings from all files into one dictionary
 NODE_CLASS_MAPPINGS = {
     **CHOOSER_CLASS_MAPPINGS,
+    **LINE_CHOOSER_CLASS_MAPPINGS,
     **AUTO_PROMPT_CLASS_MAPPINGS,
     **ENHANCE_PROMPT_CLASS_MAPPINGS,
     **RESOLUTION_CLASS_MAPPINGS,
@@ -33,6 +37,7 @@ NODE_CLASS_MAPPINGS = {
 # Merge the display name mappings from all files into one dictionary
 NODE_DISPLAY_NAME_MAPPINGS = {
     **CHOOSER_NAME_MAPPINGS,
+    **LINE_CHOOSER_NAME_MAPPINGS,
     **AUTO_PROMPT_NAME_MAPPINGS,
     **ENHANCE_PROMPT_NAME_MAPPINGS,
     **RESOLUTION_NAME_MAPPINGS,
