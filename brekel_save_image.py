@@ -144,7 +144,7 @@ class BrekelSaveImage:
             counter = next_number(used, start_number, fill_gaps)
             used.add(counter)
 
-            file = f"{filename_with_batch_num}_{counter:05}_.{extension}"
+            file = f"{filename_with_batch_num}_{counter:05}.{extension}"
             path = os.path.join(full_output_folder, file)
 
             if extension == "jpg":
@@ -163,14 +163,18 @@ class BrekelSaveImage:
                 "subfolder": subfolder,
                 "type": output_type
             })
-            last_filename = f"{filename_with_batch_num}_{counter:05}_"
+            last_filename = f"{filename_with_batch_num}_{counter:05}"
 
         return {"ui": {"images": results}, "result": (images, last_filename)}
 
 
 def scan_used_numbers(folder, base_name):
-    """Collect the numbers already used by files named <base_name>_<number>_.<ext> in folder."""
-    pattern = re.compile(re.escape(base_name) + r"_(\d+)_", re.IGNORECASE)
+    """Collect the numbers already used by files named <base_name>_<number>.<ext> in folder.
+
+    The trailing underscore the standard Save Image node writes is accepted as well, so a folder
+    that already holds image_00001_.png keeps counting from there.
+    """
+    pattern = re.compile(re.escape(base_name) + r"_(\d+)_?", re.IGNORECASE)
     used = set()
     try:
         entries = os.listdir(folder)
