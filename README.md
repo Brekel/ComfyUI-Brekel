@@ -2,7 +2,8 @@
 
 A collection of custom nodes for ComfyUI designed to enhance and streamline your workflow.  
 These nodes provide tools for generating, combining, enhancing, and selecting prompts dynamically, plus
-utility nodes for resolutions, loading/saving images with extra metadata, and loading LoRAs from a folder.
+utility nodes for resolutions, loading/saving images with extra metadata, loading LoRAs from a folder,
+and estimating how long the rest of the queue will take.
 
 <img src="images/Screenshot_flux.jpg">
 
@@ -19,6 +20,7 @@ utility nodes for resolutions, loading/saving images with extra metadata, and lo
   - [🖼️ Brekel Load Image (with Filename & Caption)](#️-brekel-load-image-with-filename--caption)
   - [💾 Brekel Save Image (PNG/JPG)](#-brekel-save-image-pngjpg)
   - [🎛️ Brekel Lora Loader (Directory)](#️-brekel-lora-loader-directory)
+  - [⏳ Brekel Queue ETA](#-brekel-queue-eta)
 - [🔒 Viewport Lock (UI extension)](#-viewport-lock-ui-extension)
 - [📝 Author](#-author)
 ## 
@@ -340,6 +342,69 @@ so a batch of queued runs can step through or randomly pick the LoRAs in a folde
 | `MODEL`     | MODEL  | The model with the LoRA applied.                                                   |
 | `CLIP`      | CLIP   | The CLIP with the LoRA applied.                                                    |
 | `LORA_NAME` | STRING | The name of the loaded LoRA without its extension, `None` when nothing was loaded. |
+<br>
+
+
+### ⏳ Brekel Queue ETA
+
+Shows how many prompts are left in the queue, the estimated time left and the time of arrival.
+The estimate is learned from how long previous runs took, so it gets going after the first finished run
+of a workflow and needs no setup.
+
+#### How to Use
+
+1. Add the node to your workflow, it has no inputs or outputs and does not need to be connected to anything.
+2. Queue a batch of runs. Once the first run of a workflow has finished the node shows the time left and the ETA,
+   and counts down while the queue is being worked through.
+3. The stats are shared by every Queue ETA node, so you can drop one in each workflow you queue from.
+
+#### What the node shows
+
+- **In queue / time left / ETA**: the number of prompts that still have to finish, how long that is estimated to take
+  and the clock time at which the queue should be done.
+- **Progress bar**: how many prompts are done, counted from the moment the queue was last empty.
+- **Workflow table**: one row per type of workflow with the number of queued prompts, the median run time and the
+  number of recorded runs. Workflows that are in the queue are listed first.
+- **Reset stats**: forgets all recorded run times, click it a second time to confirm.
+  Right-click the node to reset a single workflow instead.
+- **Shut down PC when the queue is done**: see below.
+
+#### Shut down when the queue is done
+
+Tick **Shut down PC when the queue is done** on the node to have the computer shut down after the last prompt
+in the queue has finished, for example for a batch that runs overnight.
+
+- The shutdown is not immediate. When the queue is done a 5 minute countdown starts, the node shows it together
+  with a **Cancel shutdown** button. It can also be cancelled from a command prompt with `shutdown /a`.
+- Queueing new prompts during the countdown calls the shutdown off, it starts again once those are done too.
+- The option is never remembered: it switches itself off after it has been used and it is off again whenever
+  ComfyUI is restarted, so it has to be enabled explicitly every time.
+- The queue counts as done when it is empty, also when the last prompt failed or was interrupted.
+- Windows closes the programs that are still open when the countdown ends, so save your work in other programs.
+  On Linux the `shutdown` command needs to be allowed for the user that runs ComfyUI.
+
+#### How the estimate works
+
+- Run times are kept per type of workflow, so a queue that mixes different workflows is estimated per prompt.
+  Two prompts count as the same type when they run the same nodes with the same connections, widget values such as
+  the seed or the prompt text make no difference.
+- The estimate for a workflow is the median of its last 10 runs, which keeps the first run (model loading) and fully
+  cached runs from skewing it.
+- A workflow that has not finished a run yet has no estimate. Its row shows `–`, and the time left gets a `+`
+  to show it is a minimum.
+- Only runs that finish successfully are recorded, interrupted and failed runs are ignored.
+- Changing settings that affect the run time (steps, resolution, batch size) within the same workflow makes the
+  estimate lag behind until enough new runs have been recorded.
+
+#### Notes
+
+- The timing happens on the server, so it keeps running when the browser tab is closed or reloaded.
+- Workflows are listed by their file name when they are queued from the ComfyUI interface, and by a short hash
+  when queued through the API.
+- The stats are saved to `brekel_queue_eta.json` in the ComfyUI `user` folder and are kept between restarts.
+- Nothing is stored in the workflow itself, so the node never marks your workflow as modified.
+- Every finished prompt prints a line with its stats to the console:
+  `[Brekel Queue ETA] my_workflow: 17.43s (median 17.90s over 6 runs) | 12 left, ~3m 35s, ETA 14:32:10`
 <br>
 
 

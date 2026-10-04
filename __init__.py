@@ -22,6 +22,9 @@ from .brekel_save_image import NODE_CLASS_MAPPINGS as SAVE_IMAGE_CLASS_MAPPINGS,
 # Import the mappings from the directory-based lora loader node
 from .brekel_lora_loader import NODE_CLASS_MAPPINGS as LORA_LOADER_CLASS_MAPPINGS, NODE_DISPLAY_NAME_MAPPINGS as LORA_LOADER_NAME_MAPPINGS
 
+# Import the mappings from the queue ETA node (this also starts timing the queue)
+from .brekel_queue_eta import NODE_CLASS_MAPPINGS as QUEUE_ETA_CLASS_MAPPINGS, NODE_DISPLAY_NAME_MAPPINGS as QUEUE_ETA_NAME_MAPPINGS
+
 # Merge the class mappings from all files into one dictionary
 NODE_CLASS_MAPPINGS = {
     **CHOOSER_CLASS_MAPPINGS,
@@ -32,6 +35,7 @@ NODE_CLASS_MAPPINGS = {
     **LOAD_IMAGE_CLASS_MAPPINGS,
     **SAVE_IMAGE_CLASS_MAPPINGS,
     **LORA_LOADER_CLASS_MAPPINGS,
+    **QUEUE_ETA_CLASS_MAPPINGS,
 }
 
 # Merge the display name mappings from all files into one dictionary
@@ -44,6 +48,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     **LOAD_IMAGE_NAME_MAPPINGS,
     **SAVE_IMAGE_NAME_MAPPINGS,
     **LORA_LOADER_NAME_MAPPINGS,
+    **QUEUE_ETA_NAME_MAPPINGS,
 }
 
 # Tell ComfyUI where to find frontend JS extensions (viewport lock, etc.)
