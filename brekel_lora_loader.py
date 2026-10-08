@@ -1,17 +1,26 @@
 #
 # Brekel Lora Loader Node for ComfyUI
-# Version: 1.0.0
+# Version: 1.1.0
 #
 # Author: Brekel - https://brekel.com
 #
 # This node loads LoRAs from a specified custom directory instead of the default list.
 # It selects the LoRA based on an index integer, allowing for "increment", "decrement", 
 # "randomize" controls in the ComfyUI widget.
+# With 'shuffle' on, incrementing walks the LoRAs in a shuffled order instead of alphabetically.
+#
+#
+# Release log:
+#
+# v1.1.0:
+# - 'shuffle' option, with the index control on 'increment' every LoRA comes up once in random order before any repeats
 
 import os
 import comfy.utils
 import comfy.sd
 import folder_paths
+
+from .brekel_shuffle import shuffled_index
 
 class BrekelLoraLoader:
     def __init__(self):
@@ -35,10 +44,12 @@ class BrekelLoraLoader:
                 "lora_index": ("INT", {"default": 0, "min": 0, "max": 999999, "step": 1, "control_after_generate": True}),
                 "strength_model": ("FLOAT", {"default": 1.0, "min": -10.0, "max": 10.0, "step": 0.01}),
                 "strength_clip": ("FLOAT", {"default": 1.0, "min": -10.0, "max": 10.0, "step": 0.01}),
+                # Kept last so saved workflows from before it existed load their widget values into the right slots.
+                "shuffle": ("BOOLEAN", {"default": False, "tooltip": "Walk the LoRAs in a shuffled order instead of alphabetically. With the control set to 'increment' every LoRA comes up once before any LoRA repeats. 'randomize' can repeat a LoRA soon after."}),
             }
         }
 
-    def load_lora(self, model, clip, folder_path, lora_index, strength_model, strength_clip):
+    def load_lora(self, model, clip, folder_path, lora_index, strength_model, strength_clip, shuffle=False):
         # Optimization: If strength is 0, pass through without loading
         if strength_model == 0 and strength_clip == 0:
             return (model, clip, "None")
@@ -68,7 +79,10 @@ class BrekelLoraLoader:
             return (model, clip, "None")
 
         # Calculate index using modulo so it loops if index > file count
-        actual_index = lora_index % len(files)
+        if shuffle:
+            actual_index = shuffled_index(lora_index, len(files), folder_path)
+        else:
+            actual_index = lora_index % len(files)
         lora_name = files[actual_index]
         lora_path = os.path.join(folder_path, lora_name)
 

@@ -124,6 +124,7 @@ It's a powerful tool for creating complex, semi-randomized prompts while still a
 2. Populate this folder with your own `.txt` files or edit the existing examples. Each file should contain a list of items, one per line (e.g., a file for styles, another for artists, another for lighting types). You can of course add additional text files. (Refresn Node Definitions to update the node with new text file entries)
 3. In ComfyUI, use the `random_line_file` dropdowns to select the files you want to draw from. Selecting "None" will skip that slot.
 4. The node will pick one random line from each selected file and combine them with your `prefix` and `postfix` using the specified `delimiter`.
+   Set the control below `seed` to `increment` to get every line once before any line repeats (and never the same line twice within 5 runs, for files of 12+ lines), `randomize` can repeat a line soon after.
 5. Alternatively, set `use_static_prompt` to "true" to bypass the random generation and use the text from the `static_prompt` input instead.
 
 #### Inputs
@@ -132,7 +133,7 @@ It's a powerful tool for creating complex, semi-randomized prompts while still a
 |:--------------------- |:-------- |:---------------------------------------------------------------------------------------------------------------- |
 | `prefix`              | STRING   | Text that will always appear at the beginning of the prompt.                                                     |
 | `random_line_file1-4` | Dropdown | Select a `.txt` file from the `auto_prompt_generator` folder. The node will pick one random line from this file. |
-| `seed`                | INT      | The seed used for choosing the random lines from the files.                                                      |
+| `seed`                | INT      | The seed used for choosing the random lines from the files. Each file is walked in its own shuffled order.       |
 | `mode`                | Dropdown | `Random Prompt`: Selects random lines from the files. `Static Prompt`: Uses the `use_static_prompt`.             |
 | `static_prompt`       | STRING   | A fixed prompt to use when `mode` is set to `Static Prompt`.                                                     |
 | `postfix`             | STRING   | Text that will always appear at the end of the prompt.                                                           |
@@ -156,7 +157,7 @@ It's perfect for workflows where you want to iterate through a predefined list p
    * Add as many of your own files and/or delete the example files as needed.
 3. In ComfyUI, set the `folder_path` to this directory (it should be the default).
 4. Choose your `selection_mode`:
-   * **Random**: Uses the `seed` to pick a random file. A seed of 0 will be different each time.
+   * **Random**: Uses the `seed` to pick a random file. Set the control below `seed` to `increment` to get every file once before any file repeats (and never the same file twice within 5 runs, for 12+ files), `randomize` can repeat a file soon after.
    * **Index**: Picks a file based on its alphabetical order in the folder. The index will wrap around if it's larger than the number of files.
 
 #### Inputs
@@ -182,6 +183,7 @@ control, so a batch of queued runs can walk through the file or pick lines at ra
 2. Put one prompt on each line. Blank lines and lines starting with `#` are skipped by default, so you can keep notes in the file.
 3. `line_index` picks the line and wraps around when it is larger than the number of lines.
 4. Set the control below `line_index` to `increment` to step through the file, or to `randomize` to pick a random line each run.
+   For random order without near repeats, turn `shuffle` on and use `increment`: every line comes up once before any line repeats, and never twice within 5 runs (for files of 12+ lines, shorter files keep repeats at least a third of the file apart).
 5. Connect the `prompt` output to a CLIP Text Encode node (or any text input).
 
 After running, the node shows a readout of the chosen line at its bottom (`Line 3/5: a robot tending a greenhouse...`), so you can see which prompt was used.
@@ -196,6 +198,7 @@ Editing the file is picked up automatically, the node re-runs when the file's mo
 | `line_index`         | INT     | Which line to output, wraps around. Has the increment/randomize control.                            |
 | `skip_blank_lines`   | BOOLEAN | Ignore empty lines so they do not take up an index.                                                 |
 | `skip_comment_lines` | BOOLEAN | Ignore lines starting with `#` so the file can hold comments.                                       |
+| `shuffle`            | BOOLEAN | Walk the lines in a shuffled order instead of top to bottom, use with `increment`.                  |
 
 #### Outputs
 
@@ -321,6 +324,7 @@ so a batch of queued runs can step through or randomly pick the LoRAs in a folde
 1. Set `folder_path` to the folder holding your LoRAs (leave it empty to use the default ComfyUI `loras` folder).
 2. Files (`.safetensors`, `.ckpt`, `.pt`) are sorted alphabetically, `lora_index` picks one and wraps around when it is larger than the number of files.
 3. Set the control below `lora_index` to `increment` or `randomize` to walk through the folder over multiple runs.
+   For random order without near repeats, turn `shuffle` on and use `increment`: every LoRA comes up once before any LoRA repeats, and never twice within 5 runs (for folders of 12+ LoRAs, smaller folders keep repeats at least a third of the folder apart).
 4. Connect `LORA_NAME` to a save node's `filename_prefix` or a text input to record which LoRA was used.
 5. Setting both strengths to `0` skips loading entirely and passes the model and clip through unchanged.
 
@@ -334,6 +338,7 @@ so a batch of queued runs can step through or randomly pick the LoRAs in a folde
 | `lora_index`     | INT    | Index of the LoRA in the alphabetically sorted folder, wraps around. Has the increment/randomize control. |
 | `strength_model` | FLOAT  | How strongly to apply the LoRA to the model.                                                          |
 | `strength_clip`  | FLOAT  | How strongly to apply the LoRA to the CLIP.                                                           |
+| `shuffle`        | BOOLEAN | Walk the LoRAs in a shuffled order instead of alphabetically, use with `increment`.                  |
 
 #### Outputs
 

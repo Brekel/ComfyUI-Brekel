@@ -1,6 +1,6 @@
 #
 # Brekel Auto Prompt Generator Node for ComfyUI
-# Version: 1.1.0
+# Version: 1.2.0
 #
 # Author: Brekel - https://brekel.com
 #
@@ -17,6 +17,10 @@
 #
 # Release log:
 #
+# v1.2.0:
+# - lines are picked from a shuffled order per file, with the seed control on 'increment' every line comes up once before any repeats
+# - each file gets its own order, so files of similar length no longer pick the same line number for a given seed
+#
 # v1.1.0:
 # - node now shows the prompt it generated on the node itself after it has run
 #
@@ -27,8 +31,9 @@
 SUBFOLDER_NAME = "auto_prompt_generator"
 
 
-import random
 import os
+
+from .brekel_shuffle import shuffled_index
 
 # import block to communicate with the frontend
 try:
@@ -65,15 +70,13 @@ def get_txt_files(sub_dir=SUBFOLDER_NAME):
     return files
 
 
-def pick_random_line_from_file(file_path, seed_value):
+def pick_random_line_from_file(file_path, seed_value, salt):
     """
-    Reads a text file, picks a random non-empty line, and returns it.
+    Reads a text file, picks a non-empty line from a shuffled order of its lines, and returns it.
     It handles potential file-not-found errors or empty files gracefully.
     Returns an empty string if the file cannot be read, is empty, or no valid lines are found.
-    Uses the provided seed_value to initialize the random number generator.
+    The salt gives each file its own shuffled order, see brekel_shuffle.py.
     """
-    random.seed(seed_value)
-
     if not file_path:
         # This case now properly handles when "None" is selected for a file or when the file_path is deliberately empty.
         return ""
@@ -97,7 +100,7 @@ def pick_random_line_from_file(file_path, seed_value):
             print(f"[Brekel Node Warning] File at '{attempted_absolute_path}' is empty or contains only whitespace lines. Returning empty string.")
             return ""
 
-        return random.choice(lines)
+        return lines[shuffled_index(seed_value, len(lines), salt)]
     except Exception as e:
         print(f"[Brekel Node Error] An error occurred while reading or processing file '{attempted_absolute_path}': {e}. Returning empty string.")
         return ""
@@ -135,7 +138,7 @@ class BrekelAutoPromptGenerator:
                 "random_line_file3": (txt_file_options, {"default": "styles.txt", "tooltip": f"File to pick a random line from. File must be in the 'ComfyUI/custom_nodes/ComfyUI-Brekel/{SUBFOLDER_NAME}' subfolder. If 'None' is selected, no line will be picked from this file."}),
                 "random_line_file4": (txt_file_options, {"default": "details.txt", "tooltip": f"File to pick a random line from. File must be in the 'ComfyUI/custom_nodes/ComfyUI-Brekel/{SUBFOLDER_NAME}' subfolder. If 'None' is selected, no line will be picked from this file."}),
                 "random_line_file5": (txt_file_options, {"None": "details.txt", "tooltip": f"File to pick a random line from. File must be in the 'ComfyUI/custom_nodes/ComfyUI-Brekel/{SUBFOLDER_NAME}' subfolder. If 'None' is selected, no line will be picked from this file."}),
-                "seed": ("INT", {"default": 0, "min": 0, "max": 0xFFFFFFFFFFFFFFF, "step": 1, "forceInput": False, "control_after_generate": True}),
+                "seed": ("INT", {"default": 0, "min": 0, "max": 0xFFFFFFFFFFFFFFF, "step": 1, "forceInput": False, "control_after_generate": True, "tooltip": "Picks the lines. Set the control to 'increment' to get every line once, in shuffled order, before any line repeats. 'randomize' can repeat a line soon after."}),
                 "mode": (["Random Prompt", "Static Prompt"], {"default": "Random Prompt", "tooltip": "Generate a random prompt or use the static"}),
                 "static_prompt": ("STRING", {"multiline": True, "default": "", "tooltip": "Static prompt to use when 'use_static_prompt' is set to 'true'. If empty, no static prompt will be used."}),
                 "postfix": ("STRING", {"multiline": False, "default": "", "tooltip": "Postfix to append at the end of the prompt, for example to add your Lora trigger word(s)."}),
@@ -171,11 +174,11 @@ class BrekelAutoPromptGenerator:
             random_phrases = []
 
             # Only attempt to pick a line if a valid file path exists
-            if file_path1: random_phrases.append(pick_random_line_from_file(file_path1, seed))
-            if file_path2: random_phrases.append(pick_random_line_from_file(file_path2, seed))
-            if file_path3: random_phrases.append(pick_random_line_from_file(file_path3, seed))
-            if file_path4: random_phrases.append(pick_random_line_from_file(file_path4, seed))
-            if file_path5: random_phrases.append(pick_random_line_from_file(file_path5, seed))
+            if file_path1: random_phrases.append(pick_random_line_from_file(file_path1, seed, f"1:{random_line_file1}"))
+            if file_path2: random_phrases.append(pick_random_line_from_file(file_path2, seed, f"2:{random_line_file2}"))
+            if file_path3: random_phrases.append(pick_random_line_from_file(file_path3, seed, f"3:{random_line_file3}"))
+            if file_path4: random_phrases.append(pick_random_line_from_file(file_path4, seed, f"4:{random_line_file4}"))
+            if file_path5: random_phrases.append(pick_random_line_from_file(file_path5, seed, f"5:{random_line_file5}"))
 
             # Join non-empty random phrases with the effective delimiter
             core_content_derived = effective_delimiter.join(filter(None, random_phrases))

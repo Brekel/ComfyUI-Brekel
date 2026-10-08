@@ -1,17 +1,20 @@
 #
 # Brekel Prompt Chooser Node for ComfyUI
-# Version: 1.1.0
+# Version: 1.2.0
 #
 # Author: Brekel - https://brekel.com
 #
 # This custom node chooses a prompt text file stored from a folder
 #
 # Key Features:
-# - Choose a random prompt from a folder using a seed.
+# - Choose a random prompt from a folder using a seed, from a shuffled order so it does not repeat soon.
 # - Choose a specific prompt from a folder by its index.
 #
 #
 # Release log:
+#
+# v1.2.0:
+# - Random mode picks from a shuffled order, with the seed control on 'increment' every file comes up once before any repeats
 #
 # v1.1.0:
 # - node now shows which file it has chosen after it has run
@@ -25,7 +28,8 @@ SUBFOLDER_NAME = "prompt_chooser"
 
 import os
 import logging
-import random
+
+from .brekel_shuffle import shuffled_index
 
 # import block to communicate with the frontend
 try:
@@ -60,7 +64,12 @@ class BrekelPromptChooser:
                     "default": "Random",
                     "tooltip": "Choose 'Random' to select a file randomly based on the seed. Choose 'Index' to select a specific file."
                 }),
-                "seed": ("INT", {"default": 0, "min": 0, "max": 0xFFFFFFFFFFFFFFF}),
+                "seed": ("INT", {
+                    "default": 0,
+                    "min": 0,
+                    "max": 0xFFFFFFFFFFFFFFF,
+                    "tooltip": "Picks the file in 'Random' mode. Set the control to 'increment' to get every file once, in shuffled order, before any file repeats. 'randomize' can repeat a file soon after."
+                }),
                 "file_index": ("INT", {
                     "default": 0,
                     "min": 0,
@@ -107,8 +116,7 @@ class BrekelPromptChooser:
         
         # Logic to handle the different selection modes.
         if selection_mode == "Random":
-            random.seed(seed)
-            chosen_file = random.choice(available_files)
+            chosen_file = available_files[shuffled_index(seed, len(available_files), folder_path)]
             print(f"[Brekel Prompt Chooser] Random mode (seed {seed}) selected '{chosen_file}' from '{folder_path}'")
 
         elif selection_mode == "Index":

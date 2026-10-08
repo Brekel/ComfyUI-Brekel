@@ -1,6 +1,6 @@
 #
 # Brekel Prompt Line Chooser Node for ComfyUI
-# Version: 1.0.0
+# Version: 1.1.0
 #
 # Author: Brekel - https://brekel.com
 #
@@ -8,6 +8,13 @@
 # The line is picked by index, and because the index is a number widget it gets the
 # "fixed / increment / decrement / randomize" control, so a batch of queued runs can
 # step through or randomly pick the prompts in the file.
+# With 'shuffle' on, incrementing walks the lines in a shuffled order instead of top to bottom.
+#
+#
+# Release log:
+#
+# v1.1.0:
+# - 'shuffle' option, with the index control on 'increment' every line comes up once in random order before any repeats
 
 
 # --- CONFIGURATION CONSTANT ---
@@ -17,6 +24,8 @@ SUBFOLDER_NAME = "prompt_line_chooser"
 
 import os
 import logging
+
+from .brekel_shuffle import shuffled_index
 
 # import block to communicate with the frontend
 try:
@@ -81,6 +90,11 @@ class BrekelPromptLineChooser:
                     "default": True,
                     "tooltip": "Ignore lines starting with '#' so the file can hold comments."
                 }),
+                # Kept last so saved workflows from before it existed load their widget values into the right slots.
+                "shuffle": ("BOOLEAN", {
+                    "default": False,
+                    "tooltip": "Walk the lines in a shuffled order instead of top to bottom. With the control set to 'increment' every line comes up once before any line repeats. 'randomize' can repeat a line soon after."
+                }),
             },
             "hidden": {
                 "unique_id": "UNIQUE_ID",
@@ -94,19 +108,20 @@ class BrekelPromptLineChooser:
     RETURN_NAMES = ("prompt",)
 
     @classmethod
-    def IS_CHANGED(s, file_path, line_index, skip_blank_lines, skip_comment_lines, unique_id=None):
+    def IS_CHANGED(s, file_path, line_index, skip_blank_lines, skip_comment_lines, shuffle=False, unique_id=None):
         # Include the file's modification time so editing the prompt list re-runs the node
         # even when none of the widget values changed.
         try:
             mtime = os.path.getmtime(file_path)
         except OSError:
             mtime = 0
-        return (file_path, mtime, line_index, skip_blank_lines, skip_comment_lines)
+        return (file_path, mtime, line_index, skip_blank_lines, skip_comment_lines, shuffle)
 
-    def choose_line(self, file_path: str, line_index: int, skip_blank_lines: bool, skip_comment_lines: bool, unique_id=None):
+    def choose_line(self, file_path: str, line_index: int, skip_blank_lines: bool, skip_comment_lines: bool, shuffle: bool = False, unique_id=None):
         """
         Main execution function. It reads the given text file and returns a single line,
-        selected by index (wrapping around when the index exceeds the number of lines).
+        selected by index (wrapping around when the index exceeds the number of lines),
+        or by the index'th step through a shuffled order when shuffle is on.
         """
         file_path = file_path.strip()
 
@@ -133,10 +148,14 @@ class BrekelPromptLineChooser:
             return (f"ERROR: {error_msg}",)
 
         # Calculate index using modulo so it loops if index > line count
-        actual_index = line_index % len(lines)
+        if shuffle:
+            actual_index = shuffled_index(line_index, len(lines), file_path)
+        else:
+            actual_index = line_index % len(lines)
         chosen_line = lines[actual_index]
 
-        print(f"[Brekel Prompt Line Chooser] index {line_index} -> line {actual_index + 1} of {len(lines)} in '{file_path}'")
+        order = "shuffled " if shuffle else ""
+        print(f"[Brekel Prompt Line Chooser] {order}index {line_index} -> line {actual_index + 1} of {len(lines)} in '{file_path}'")
 
         # Send the chosen line to the UI so it stays readable at the bottom of the node
         if unique_id and PromptServer.instance:
